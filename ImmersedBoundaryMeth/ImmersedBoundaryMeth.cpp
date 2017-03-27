@@ -109,8 +109,8 @@ int main(){
 	c2.AddSolid(solidList);
 	c3.AddSolid(solidList);
 	c4.AddSolid(solidList);
-
-
+	
+	//DEVELOP COMMIT
 
 	CalculateForce_X(Force_x, solidList, U_new, r, Cd, grid, alpha_f, beta_f,m);
 	CalculateForce_Y(Force_y, solidList, V_new, r, Cl, grid, alpha_f, beta_f,m);
