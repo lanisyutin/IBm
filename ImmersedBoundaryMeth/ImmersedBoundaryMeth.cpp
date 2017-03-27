@@ -47,7 +47,7 @@ int main(){
 	double eps_u = 0.0;
 	double eps_v = 0.0;
 	double eps_p = 0.0;
-	// sadlkfmalsdkfm;
+	
 
 	int n = 0; // iteration counter
 	InputData(grid, m, Re, alpha_f, beta_f, Zeidel_eps,output_step, N_max, N_Zeidel); // Get value of some variables
@@ -157,20 +157,10 @@ int main(){
 
 		B_u = CalculateB_u(U_n, V_n, U_prev, V_prev, P, Force_x, grid, Re);
 		B_v = CalculateB_v(U_n, V_n, U_prev, V_prev, P, Force_y, grid, Re);
-		/*
-/////////////////////////////////////////
-		ofstream tmp;
-		tmp.open("Result/tmp2.txt");
-/////////////////////////////////////////
-		tmp.clear();
-		tmp << U_n;
-		tmp.flush();
-		*/
+
 		Calculate_A_u(OperatorA_u, grid, Re);//
 		Calculate_A_v(OperatorA_v, grid, Re);//
-		double _e = B_u(2, 4);
-		cout << _e;
-		cout << endl;
+
 		BiCGStab(U_new, grid.N1, grid.N2 + 1, OperatorA_u, B_u,grid);
 		BiCGStab(V_new, grid.N1 + 1, grid.N2, OperatorA_v, B_v,grid);
 
