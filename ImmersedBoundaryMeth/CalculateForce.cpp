@@ -34,9 +34,10 @@ void GetInfluenceArea(int& i_min, int& i_max, int& j_min, int& j_max, double x, 
 	}
 }
 
-double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u, double r, double & Coeff, Grid grid, double alpha_f, double beta_f, double M){
+double CalculateForce_X(Matrix& force_x, map<int, Circle*> &iList, Matrix& u, double r, double & Coeff, Grid grid, double alpha_f, double beta_f, double M){
 
-	int const n1 = grid.N1, const n2 = grid.N2+1;
+	int const n1 = grid.N1;
+	int	const n2 = grid.N2+1;
 
 	vector<double> bound_Force_x;
 	double bound_norm = 0.0;
@@ -46,14 +47,19 @@ double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u
 
 	bound_Force_x.resize(grid.NF);
 
+	for (int i = 0; i < n1; ++i){
+		for (int j = 0; j < n2; ++j){
+			force_x[i][j] = 0.0;
+		}
+	}
+
 	/*
 	calculating force F for Lagrange
 	in new_x and new_y calculated value of velocity in Lagrangian point. It calculates by using near points and discrete delta function
 	*/
 
 	for (auto& solid : iList){
-		MatrixXd force_x_temp(n1, n2);
-		force_x_temp.setZero();
+		CreateMatrix(force_x_temp, n1, n2);
 		for (int k = 0; k < grid.NF; ++k){
 
 			new_x = 0.0;
@@ -74,7 +80,7 @@ double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u
 			for (int i = i_min; i <= i_max; ++i){
 				for (int j = j_min; j <= j_max; ++j){
 
-					new_x += u(i, j) * DeltaFunction(i*grid.d_x - solid.second->Bound[0][k], (j - 0.5)*grid.d_y - solid.second->Bound[1][k],grid) * grid.d_x * grid.d_y;
+					new_x += u[i][j] * DeltaFunction(i*grid.d_x - solid.second->Bound[0][k], (j - 0.5)*grid.d_y - solid.second->Bound[1][k],grid) * grid.d_x * grid.d_y;
 
 				}
 			}
@@ -106,7 +112,8 @@ double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u
 			for (int i = i_min; i <= i_max; ++i){
 				for (int j = j_min; j <= j_max; ++j){
 
-					force_x_temp(i, j) += bound_Force_x[k] * DeltaFunction(i*grid.d_x - solid.second->Bound[0][k], (j - 0.5)*grid.d_y - solid.second->Bound[1][k], grid) * solid.second->d_s * solid.second->d_s;
+					force_x_temp[i][j] += bound_Force_x[k] * DeltaFunction(i*grid.d_x - solid.second->Bound[0][k], (j - 0.5)*grid.d_y - solid.second->Bound[1][k], grid) * solid.second->d_s * solid.second->d_s;
+
 				}
 			}
 		}
@@ -151,13 +158,14 @@ double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u
 		}
 
 		Coeff = 0.0;
+
 		for (int i = i_min; i <= i_max; ++i){
 			for (int j = j_min; j <= j_max; ++j){
 
 
-				force_x(i, j) += force_x_temp(i, j);
-
-				Coeff += force_x_temp(i, j) * grid.d_x * grid.d_y;
+				force_x[i][j] += force_x_temp[i][j];
+				//sum += force_x[i][j];
+				Coeff += force_x_temp[i][j] * grid.d_x * grid.d_y;
 
 			}
 
@@ -173,9 +181,10 @@ double CalculateForce_X(MatrixXd& force_x, map<int, Circle*> &iList, MatrixXd& u
 
 }
 
-double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v, double r, double & Coeff, Grid grid, double alpha_f, double beta_f, double M){
+double CalculateForce_Y(Matrix& force_y, map<int, Circle*> &iList, Matrix& v, double r, double & Coeff, Grid grid, double alpha_f, double beta_f, double M){
 
-	int const n1 = grid.N1+1, const n2 = grid.N2 ;
+	int const n1 = grid.N1 + 1;
+	int	const n2 = grid.N2 ;
 	vector<double> bound_Force_y;
 
 	double bound_norm = 0.0;
@@ -183,16 +192,18 @@ double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v
 	double new_y = 0.0;
 
 	double new_v_bound = 0.0;
-
-	MatrixXd force_y_temp(n1,n2);
-	force_y_temp.setZero();
+	CreateMatrix(force_y_temp, n1, n2);
 	bound_Force_y.resize(grid.NF);
 
-
+	for (int i = 0; i < n1; ++i){
+		for (int j = 0; j < n2; ++j){
+			force_y[i][j] = 0.0;
+		}
+	}
 	/*
 	for (int i = 0; i < n1; ++i){
 		for (int j = 0; j < n2; ++j){
-			force_y(i, j) = 0.0;
+			force_y[i][j] = 0.0;
 		}
 	}
 	*/
@@ -207,7 +218,7 @@ double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v
 		/*
 		for (int i = 0; i < n1; ++i){
 			for (int j = 0; j < n2; ++j){
-				force_y_temp(i, j) = 0.0;
+				force_y_temp[i][j] = 0.0;
 			}
 		}
 		*/
@@ -234,7 +245,7 @@ double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v
 				for (int j = j_min; j <= j_max; ++j){
 
 
-					new_y += v(i, j) * DeltaFunction((i - 0.5)*grid.d_x - solid.second->Bound[0][k], j*grid.d_y - solid.second->Bound[1][k],grid) * grid.d_x * grid.d_y;
+					new_y += v[i][j] * DeltaFunction((i - 0.5)*grid.d_x - solid.second->Bound[0][k], j*grid.d_y - solid.second->Bound[1][k],grid) * grid.d_x * grid.d_y;
 
 				}
 			}
@@ -270,7 +281,7 @@ double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v
 			for (int i = i_min; i <= i_max; ++i){
 				for (int j = j_min; j <= j_max; ++j){
 
-					force_y_temp(i, j) += bound_Force_y[k] * DeltaFunction((i - 0.5)*grid.d_x - solid.second->Bound[0][k], j*grid.d_y - solid.second->Bound[1][k], grid) * solid.second->d_s * solid.second->d_s;
+					force_y_temp[i][j] += bound_Force_y[k] * DeltaFunction((i - 0.5)*grid.d_x - solid.second->Bound[0][k], j*grid.d_y - solid.second->Bound[1][k], grid) * solid.second->d_s * solid.second->d_s;
 				}
 			}
 
@@ -318,9 +329,9 @@ double CalculateForce_Y(MatrixXd& force_y, map<int, Circle*> &iList, MatrixXd& v
 			for (int j = j_min; j <= j_max; ++j){
 
 
-				force_y(i, j) += force_y_temp(i, j);
+				force_y[i][j] += force_y_temp[i][j];
 
-				Coeff += force_y_temp(i, j) * grid.d_x * grid.d_y;
+				Coeff += force_y_temp[i][j] * grid.d_x * grid.d_y;
 
 			}
 

@@ -2,9 +2,8 @@
 
 #include "stdafx.h"
 #include "Grid.h"
-using namespace Eigen;
 using namespace std;
 
 
-double Calculate_Press_correction(MatrixXd& delta_p, MatrixXd &b_p, MatrixXd &u, int const N_Zeidel, double const Zeidel_eps, Grid grid);
-MatrixXd Calculate_Press_Right(MatrixXd& u, MatrixXd& v, Grid grid);
+double Calculate_Press_correction(Matrix& delta_p, Matrix &b_p, int const N_Zeidel, double const Zeidel_eps, Grid grid);
+Matrix Calculate_Press_Right(Matrix& u, Matrix& v, Grid grid);

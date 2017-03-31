@@ -1,4 +1,11 @@
 #pragma once
+//Type of matrix with double
+typedef  std::vector<std::vector<double>> Matrix;
+
+//Macros which make matrix type of double size of n*m
+#define CreateMatrix(name, n, m) Matrix name(n,std::vector<double>(m, 0))
+
+
 struct Grid{
 	double L = 0; //length
 	double H = 0; //height

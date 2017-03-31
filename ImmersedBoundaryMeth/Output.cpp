@@ -1,6 +1,6 @@
 #include "Output.h"
 
-void OutputPressure(MatrixXd data, int n, double output_step, map<int, Circle*> iList, Grid grid){
+void OutputPressure(Matrix data, int n, double output_step, map<int, Circle*> iList, Grid grid){
 
 	ofstream output;
 	int i = 0;
@@ -17,36 +17,36 @@ void OutputPressure(MatrixXd data, int n, double output_step, map<int, Circle*> 
 	output << "zone T=" << '"' << n << '"' << ",  i=" << grid.N1 + 1 << ", j=" << grid.N2 + 1 << ", f=point" << endl;
 
 
-	output << 0.0 << ' ' << 0.0 << ' ' << data(0, 0) << endl;
+	output << 0.0 << ' ' << 0.0 << ' ' << data[0][0] << endl;
 
 	for (i = 1; i < grid.N1; ++i){
 
-		output << (i - 0.5)*grid.d_x << ' ' << 0.0 << ' ' << data(i, 0) << endl;
+		output << (i - 0.5)*grid.d_x << ' ' << 0.0 << ' ' << data[i][0] << endl;
 	}
 	i = grid.N1;
-	output << (i - 1)*grid.d_x << ' ' << 0.0 << ' ' << data(i, 0) << endl;
+	output << (i - 1)*grid.d_x << ' ' << 0.0 << ' ' << data[i][0] << endl;
 
 
 	for (j = 1; j < grid.N2; ++j){
 
-		output << 0.0 << ' ' << (j - 0.5)*grid.d_y << ' ' << data(0, j) << endl;
+		output << 0.0 << ' ' << (j - 0.5)*grid.d_y << ' ' << data[0][j] << endl;
 
 		for (i = 1; i < grid.N1; ++i){
-			output << (i - 0.5)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data(i, j) << endl;
+			output << (i - 0.5)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data[i][j] << endl;
 		}
 		i = grid.N1;
-		output << (i - 1)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data(i, j) << endl;
+		output << (i - 1)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data[i][j] << endl;
 	}
 
 
 	j = grid.N2;
-	output << 0.0 << ' ' << (j - 1)*grid.d_y << ' ' << data(0, j) << endl;
+	output << 0.0 << ' ' << (j - 1)*grid.d_y << ' ' << data[0][j] << endl;
 	for (i = 1; i < grid.N1; ++i){
 
-		output << (i - 0.5)*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data(i, j) << endl;
+		output << (i - 0.5)*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data[i][j] << endl;
 	}
 	i = grid.N1;
-	output << (i - 1)*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data(i, j) << endl;
+	output << (i - 1)*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data[i][j] << endl;
 
 	for (auto& solid : iList){
 
@@ -69,7 +69,7 @@ void OutputPressure(MatrixXd data, int n, double output_step, map<int, Circle*> 
 }
 
 
-void OutputVelocity_U(MatrixXd data, int n, int output_step, map<int, Circle*> iList, Grid grid){
+void OutputVelocity_U(Matrix data, int n, int output_step, map<int, Circle*> iList, Grid grid){
 
 	ofstream output;
 
@@ -85,19 +85,19 @@ void OutputVelocity_U(MatrixXd data, int n, int output_step, map<int, Circle*> i
 
 	for (int i = 0; i < grid.N1; ++i){
 
-		output << i*grid.d_x << ' ' << 0.0 << ' ' << data(i, 0) << endl;
+		output << i*grid.d_x << ' ' << 0.0 << ' ' << data[i][0] << endl;
 	}
 
 	for (int j = 1; j < grid.N2; ++j){
 		for (int i = 0; i < grid.N1; ++i){
-			output << (i)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data(i, j) << endl;
+			output << (i)*grid.d_x << ' ' << (j - 0.5)*grid.d_y << ' ' << data[i][j] << endl;
 		}
 	}
 
 	for (int i = 0; i < grid.N1; ++i){
 
 		int j = grid.N2;
-		output << i*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data(i, j) << endl;
+		output << i*grid.d_x << ' ' << (j - 1)*grid.d_y << ' ' << data[i][j] << endl;
 	}
 
 	for (auto& solid : iList){
@@ -120,7 +120,7 @@ void OutputVelocity_U(MatrixXd data, int n, int output_step, map<int, Circle*> i
 }
 
 
-void OutputVelocity_V(MatrixXd& data, int n, int output_step, map<int, Circle*> iList, Grid grid){
+void OutputVelocity_V(Matrix& data, int n, int output_step, map<int, Circle*> iList, Grid grid){
 
 	ofstream output;
 
@@ -138,17 +138,17 @@ void OutputVelocity_V(MatrixXd& data, int n, int output_step, map<int, Circle*> 
 	for (int j = 0; j < grid.N2; ++j){
 
 
-		output << 0.0 << ' ' << (j)*grid.d_y << ' ' << data(0, j) << endl;
+		output << 0.0 << ' ' << (j)*grid.d_y << ' ' << data[0][j] << endl;
 
 		for (int i = 1; i < grid.N1; ++i){
 
-			output << (i - 0.5)*grid.d_x << ' ' << (j)*grid.d_y << ' ' << data(i, j) << endl;
+			output << (i - 0.5)*grid.d_x << ' ' << (j)*grid.d_y << ' ' << data[i][j] << endl;
 
 		}
 
 		int i = grid.N1;
 
-		output << (i - 1)*grid.d_x << ' ' << (j)*grid.d_y << ' ' << data(i-1, j) << endl;
+		output << (i - 1)*grid.d_x << ' ' << (j)*grid.d_y << ' ' << data[i][j] << endl;
 	}
 
 	for (auto& solid : iList){

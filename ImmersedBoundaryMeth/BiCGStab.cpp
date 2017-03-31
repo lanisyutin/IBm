@@ -1,19 +1,20 @@
 
 #include "BiCGStab.h"
 
-void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5], MatrixXd &b, Grid grid){
+void BiCGStab(Matrix &x, int const n1, int const n2, Matrix operator_A[5], Matrix &b, Grid grid){
 	double eps = 0.0;
 	double help_value = 0.0;
 
 	int n = 0;
 
-	MatrixXd r(n1, n2); // variables for BiCGStab ( Biconjugate gradient stabilized method )
-	MatrixXd r_wave(n1, n2);
-	MatrixXd v(n1, n2); // this is not velocity v.
-	MatrixXd p(n1, n2); // this is not velocity p.
-	MatrixXd s(n1, n2);
-	MatrixXd t(n1, n2);
-	r.setZero(); r_wave.setZero(); v.setZero(); p.setZero(); s.setZero(); t.setZero();
+	CreateMatrix(r, n1, n2); // variables for BiCGStab ( Biconjugate gradient stabilized method )
+	CreateMatrix(r_wave, n1, n2);
+	CreateMatrix(v, n1, n2); // this is not velocity v.
+	CreateMatrix(p, n1, n2); // this is not velocity p.
+	CreateMatrix(s, n1, n2);
+	CreateMatrix(t, n1, n2);
+	
+
 
 	double rho_prev = 1.0;
 	double rho_current = 1.0;
@@ -24,7 +25,7 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 	double b_norm = 0.0;
 
 	/* We want to solve Poisson equation for velocity.
-	Au = b, where A MatrixXd of coefficents of leap-frog scheme applyied to poisson equation. and b right side
+	Au = b, where A Matrix of coefficents of leap-frog scheme applyied to poisson equation. and b right side
 	preparation for CG
 	Suppose in u first approximation ( in fact in u - velocity fromprevious step)
 	r(0) = b - Au
@@ -39,18 +40,17 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 	// }
 
 
-	r = Operator_Ax(operator_A, res, n1, n2, grid);
+	r = Operator_Ax(operator_A, x, n1, n2, grid);
 
 
 	for (int j = 0; j < n2; ++j){
 		for (int i = 0; i < n1; ++i){
+			help_value = b[i][j] - r[i][j];
 
-			help_value = b(i, j) - r(i, j);
+			r[i][j] = help_value;
+			r_wave[i][j] = help_value;
 
-			r(i, j) = help_value;
-			r_wave(i, j) = help_value;
-
-			b_norm += pow(b(i, j), 2);
+			b_norm += pow(b[i][j], 2);
 		}
 	}
 
@@ -75,14 +75,9 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 		for (int i = 0; i < n1; ++i){
 			for (int j = 0; j < n2; ++j){
 
-				// if ( i < M1 && j < M2 ){
-				// 	continue;
-				// }
-
-				p(i, j) = r(i, j) + beta * (p(i, j) - omega * v(i, j));
+				p[i][j] = r[i][j] + beta * (p[i][j] - omega * v[i][j]);
 
 			}
-
 		}
 
 		// 4.
@@ -99,12 +94,7 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 
 		for (int j = 0; j < n2; ++j){
 			for (int i = 0; i < n1; ++i){
-
-				// if ( i < M1 && j < M2 ){
-				// 	continue;
-				// }
-
-				s(i, j) = r(i, j) - alpha * v(i, j);
+				s[i][j] = r[i][j] - alpha * v[i][j];
 
 
 			}
@@ -129,16 +119,13 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 				// if ( i < M1 && j < M2 ){
 				// 	continue;
 				// }
+				x[i][j] = x[i][j] + omega * s[i][j] + alpha * p[i][j];
 
+				r[i][j] = s[i][j] - omega * t[i][j];
 
-				res(i, j) = res(i, j) + omega * s(i, j) + alpha * p(i, j);
-
-				r(i, j) = s(i, j) - omega * t(i, j);
-
-				r_norm += pow(r(i, j), 2);
+				r_norm += pow(r[i][j], 2);
 
 			}
-
 		}
 
 		rho_prev = rho_current;
@@ -169,14 +156,14 @@ void BiCGStab(MatrixXd &res, int const n1, int const n2, MatrixXd operator_A[5],
 
 }
 
-double ScalarOperator(MatrixXd &a, MatrixXd &b, int n1, int n2){
+double ScalarOperator(Matrix &a, Matrix &b, int n1, int n2){
 
 	double result = 0;
 	//написать сумму скал€рных произведений строк матрицы
 
 	for (int i = 0; i < n1; ++i){
 		for (int j = 0; j < n2; ++j){
-			result += a(i, j) * b(i, j);
+			result += a[i][j] * b[i][j];
 
 		}
 	}

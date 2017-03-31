@@ -15,7 +15,7 @@
 
 
 using namespace std;
-using namespace Eigen;
+//using namespace Eigen;
 
 
 // fuctions
@@ -23,8 +23,8 @@ using namespace Eigen;
 void InputData(Grid& grid, double &M, int &Re, double &alpha_f, double &beta_f, double& Zeidel_eps, int& output_step, int& N_max, int& N_Zeidel);
 void SetLog(ostream &log, Grid grid, double M, double Re, double alpha_f, double beta_f, double Zeidel_eps);
 void PushLog(ostream &log, int n, double eps_u, double eps_v);
-void ApplyInitialData(MatrixXd& u, Grid grid);
-
+void ApplyInitialData(Matrix& u, Grid grid);
+void Resize(Matrix& M, const int n, const int m);
 
 
 int main(){
@@ -51,35 +51,40 @@ int main(){
 
 	int n = 0; // iteration counter
 	InputData(grid, m, Re, alpha_f, beta_f, Zeidel_eps,output_step, N_max, N_Zeidel); // Get value of some variables
-	MatrixXd U_n(grid.N1, grid.N2 + 1), U_new(grid.N1, grid.N2 + 1), U_prev(grid.N1, grid.N2 + 1), B_u(grid.N1, grid.N2 + 1), Force_x(grid.N1, grid.N2 + 1);
-	U_new.setZero();
-	U_n.setZero();
-	U_prev.setZero();
-	B_u.setZero();
-	Force_x.setZero();
-	MatrixXd V_n(grid.N1 + 1, grid.N2), V_new(grid.N1 + 1, grid.N2), V_prev(grid.N1 + 1, grid.N2), B_v(grid.N1 + 1, grid.N2), Force_y(grid.N1 + 1, grid.N2);
-	V_n.setZero();
-	V_new.setZero();
-	V_prev.setZero();
-	B_v.setZero();
-	Force_y.setZero();
-	MatrixXd P(grid.N1 + 1, grid.N2 + 1), Delta_P(grid.N1 + 1, grid.N2 + 1), P_Right(grid.N1 + 1, grid.N2 + 1);
-	P.setZero();
-	Delta_P.setZero();
-	P_Right.setZero();
-	MatrixXd OperatorA_u[5];
-	OperatorA_u[0].resize(grid.N1, grid.N2 + 1); OperatorA_u[0].setZero();
-	OperatorA_u[1].resize(grid.N1, grid.N2 + 1); OperatorA_u[1].setZero();
-	OperatorA_u[2].resize(grid.N1, grid.N2 + 1); OperatorA_u[2].setZero();
-	OperatorA_u[3].resize(grid.N1, grid.N2 + 1); OperatorA_u[3].setZero();
-	OperatorA_u[4].resize(grid.N1, grid.N2 + 1); OperatorA_u[4].setZero();
-	MatrixXd OperatorA_v[5];
-	OperatorA_v[0].resize(grid.N1 + 1, grid.N2); OperatorA_v[0].setZero();
-	OperatorA_v[1].resize(grid.N1 + 1, grid.N2); OperatorA_v[1].setZero();
-	OperatorA_v[2].resize(grid.N1 + 1, grid.N2); OperatorA_v[2].setZero();
-	OperatorA_v[3].resize(grid.N1 + 1, grid.N2); OperatorA_v[3].setZero();
-	OperatorA_v[4].resize(grid.N1 + 1, grid.N2); OperatorA_v[4].setZero();
+	CreateMatrix(U_n, grid.N1, grid.N2 + 1);
+	CreateMatrix(U_new, grid.N1, grid.N2 + 1);
+	CreateMatrix(U_prev, grid.N1, grid.N2 + 1);
+	CreateMatrix(B_u, grid.N1, grid.N2 + 1); 
+	CreateMatrix(Force_x, grid.N1, grid.N2 + 1); 
 
+	CreateMatrix(V_n, grid.N1+1, grid.N2);
+	CreateMatrix(V_new, grid.N1+1, grid.N2);
+	CreateMatrix(V_prev, grid.N1 + 1, grid.N2);
+	CreateMatrix(B_v, grid.N1 + 1, grid.N2);
+	CreateMatrix(Force_y, grid.N1 + 1, grid.N2);
+	
+	CreateMatrix(P, grid.N1 + 1, grid.N2 + 1);
+	CreateMatrix(Delta_P, grid.N1 + 1, grid.N2 + 1);
+	CreateMatrix(P_Right, grid.N1 + 1, grid.N2 + 1);
+	
+	Matrix OperatorA_u[5];
+	for (int i = 0; i < 5; i++){
+		OperatorA_u[i].resize(grid.N1);
+		for (int j = 0; j < grid.N1; j++){
+			OperatorA_u[i][j].resize(grid.N2 + 1);
+			fill(OperatorA_u[i][j].begin(), OperatorA_u[i][j].end(), 0);
+		}
+	}
+
+	Matrix OperatorA_v[5];
+	for (int i = 0; i < 5; i++){
+		OperatorA_v[i].resize(grid.N1+1);
+		for (int j = 0; j < grid.N1+1; j++){
+			OperatorA_v[i][j].resize(grid.N2);
+			fill(OperatorA_v[i][j].begin(), OperatorA_v[i][j].end(), 0);
+		}
+	}
+	
 
 	// list of immersed solids
 	map<int, Circle*> solidList;
@@ -93,7 +98,7 @@ int main(){
 	SetLog(log,grid,m,Re,alpha_f,beta_f,Zeidel_eps);
 	log << endl;
 
-
+	//нет зависимости начальной скарости от давления
 	ApplyInitialData(U_new,grid); // Applying initial data to velocity 
 	U_n = U_new;
 	U_prev = U_new;
@@ -110,13 +115,13 @@ int main(){
 	c3.AddSolid(solidList);
 	c4.AddSolid(solidList);
 	
-	//DEVELOP COMMIT
+
 
 	CalculateForce_X(Force_x, solidList, U_new, r, Cd, grid, alpha_f, beta_f,m);
 	CalculateForce_Y(Force_y, solidList, V_new, r, Cl, grid, alpha_f, beta_f,m);
 
-	OutputVelocity_U(U_new, 0, output_step, solidList, grid);
-	OutputVelocity_V(V_new, 0,output_step, solidList,grid);
+	OutputVelocity_U(U_new, -1, output_step, solidList, grid);
+	OutputVelocity_V(V_new, -1,	output_step, solidList, grid);
 	//press_output.open(filepress);
 	while (n <= N_max){
 		//creation new solids
@@ -166,54 +171,59 @@ int main(){
 
 		P_Right = Calculate_Press_Right( U_n, V_n,grid);
 
-		Delta_P.setZero();
-		eps_p = Calculate_Press_correction(Delta_P, P_Right, U_n,N_Zeidel,Zeidel_eps,grid);
+		for (int i = 0; i < Delta_P.size(); ++i)
+			for (int j = 0; j < Delta_P[i].size(); ++j){
+			Delta_P[i][j] = 0.0;
+			}
+		
+
+		eps_p = Calculate_Press_correction(Delta_P, P_Right,N_Zeidel,Zeidel_eps,grid); //Должна ли поправка зависеть от скорости?
 		press_output << n << ' ' << eps_p << endl;
 
 
 
 		for (int i = 0; i < grid.N1 + 1; ++i){
 			for (int j = 0; j < grid.N2 + 1; ++j){
-				P(i,j) = P(i,j) + 0.8 * Delta_P(i,j);
+				P[i][j] = P[i][j] + 0.8 * Delta_P[i][j];
 			}
 		}
 
 		for (int i = 1; i < grid.N1 - 1; ++i){
 			for (int j = 1; j < grid.N2; ++j){
-				U_new(i,j) = U_new(i,j) - grid.d_t * (Delta_P(i+1,j) - Delta_P(i,j)) / grid.d_x;
+				U_new[i][j] = U_new[i][j] - grid.d_t * (Delta_P[i + 1][j] - Delta_P[i][j]) / grid.d_x;
 			}
 		}
 
 		for (int j = 1; j < grid.N2; ++j){
 			int i = grid.N1 - 1;
-			U_new(i,j) = U_new(i-1,j);
+			U_new[i][j] = U_new[i - 1][j];
 		}
 
 
 		for (int i = 1; i < grid.N1 + 1; ++i){
 			for (int j = 1; j < grid.N2 - 1; ++j){
-				V_new(i,j) = V_new(i,j) - grid.d_t * (Delta_P(i,j+1) - Delta_P(i,j)) / grid.d_y;
+				V_new[i][j] = V_new[i][j] - grid.d_t * (Delta_P[i][j+1] - Delta_P[i][j]) / grid.d_y;
 			}
 		}
 		
 		for (int i = 0; i < grid.N1; ++i){
 			for (int j = 0; j < grid.N2 + 1; ++j){
-				if (fabs(U_n(i,j) - U_new(i,j)) > eps_u){
-					eps_u = fabs(U_n(i,j) - U_new(i,j));
+				if (fabs(U_n[i][j] - U_new[i][j]) > eps_u){
+					eps_u = fabs(U_n[i][j] - U_new[i][j]);
 				}
 
-				U_prev(i,j) = U_n(i,j);
-				U_n(i,j) = U_new(i,j);
+				U_prev[i][j] = U_n[i][j];
+				U_n[i][j] = U_new[i][j];
 			}
 		}
 
 		for (int i = 0; i < grid.N1 + 1; ++i){
 			for (int j = 0; j < grid.N2; ++j){
-				if (fabs(V_n(i,j) - V_new(i,j)) > eps_v){
-					eps_v = fabs(V_n(i,j) - V_new(i,j));
+				if (fabs(V_n[i][j] - V_new[i][j]) > eps_v){
+					eps_v = fabs(V_n[i][j] - V_new[i][j]);
 				}
-				V_prev(i,j) = V_n(i,j);
-				V_n(i,j) = V_new(i,j);
+				V_prev[i][j] = V_n[i][j];
+				V_n[i][j] = V_new[i][j];
 			}
 		}
 
@@ -221,24 +231,26 @@ int main(){
 		CalculateForce_X(Force_x, solidList, U_new, r, Cd, grid,alpha_f,beta_f,m);
 		CalculateForce_Y(Force_y, solidList, V_new, r, Cl, grid, alpha_f, beta_f,m);
 
-
-		for (auto& solid : solidList){
-			if ((solid.second->moveSolid == false)&&(n - solid.second->start_n > 10)){
-				solid.second->moveSolid = true;
+		
+		for (auto& solid = solidList.begin(); solid != solidList.end(); ++solid){
+			
+			if ((solid->second->moveSolid == false)&&(n - solid->second->start_n > 10)){
+				solid->second->moveSolid = true;
 			}
 
-			if (solid.second->moveSolid){
+			if (solid->second->moveSolid){
 				//update position
 				for (int k = 0; k < grid.NF; ++k){
-					solid.second->Bound[0][k] += solid.second->U * grid.d_t;
-					solid.second->Bound[1][k] += solid.second->V * grid.d_t;
-					solid.second->x += solid.second->U * grid.d_t;
-					solid.second->y += solid.second->V * grid.d_t;
+					solid->second->Bound[0][k] += solid->second->U * grid.d_t;
+					solid->second->Bound[1][k] += solid->second->V * grid.d_t;
+					solid->second->x += solid->second->U * grid.d_t;
+					solid->second->y += solid->second->V * grid.d_t;
 				}
 			}
 			//delete bodies which move 80% of length
-			if (solid.second->x >= grid.L*0.8){
-					solidList.erase(solid.first);
+			if (solid->second->x > grid.L*0.8){
+					solidList.erase(solid->first);
+				
 				}
 
 		}
@@ -310,12 +322,12 @@ void PushLog(ostream& log, int n, double eps_u, double eps_v){
 }
 
 // Apply initial data for velocity
-void ApplyInitialData(MatrixXd &u, Grid grid){
+void ApplyInitialData(Matrix &u, Grid grid){
 
 	// Poiseuille flow 
 	for (int i = 0; i < grid.N1; ++i){
 		for (int j = 1; j < grid.N2; ++j){
-			u(i,j) = (pow((grid.H) / 2.0, 2) - pow((j - 0.5)*grid.d_y - grid.H/ 2.0, 2));
+			u[i][j] = (pow((grid.H) / 2.0, 2) - pow((j - 0.5)*grid.d_y - grid.H/ 2.0, 2));
 		}
 	}
 }
@@ -345,4 +357,10 @@ void InputData(Grid& grid, double &M, int &Re, double &alpha_f, double &beta_f, 
 	grid.d_x = grid.L / (grid.N1 - 1);
 	grid.d_y = grid.H / (grid.N2 - 1);
 
+}
+
+void Resize(Matrix& M, const int n, const int m){
+	for (int i = 0; i < n; i++){
+		
+	}
 }

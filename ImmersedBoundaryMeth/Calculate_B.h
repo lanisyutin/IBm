@@ -1,9 +1,8 @@
 #pragma once
 #include "stdafx.h"
 #include "Grid.h"
-using namespace Eigen;
 using namespace std;
 
 
-MatrixXd CalculateB_u(MatrixXd &u_n, MatrixXd &v_n, MatrixXd &u_prev, MatrixXd &v_prev, MatrixXd &p, MatrixXd &force, Grid grid, double Re);
-MatrixXd CalculateB_v(MatrixXd &u_n, MatrixXd &v_n, MatrixXd &u_prev, MatrixXd &v_prev, MatrixXd &p, MatrixXd &force, Grid grid, double Re);
+Matrix CalculateB_u(Matrix &u_n, Matrix &v_n, Matrix &u_prev, Matrix &v_prev, Matrix &p, Matrix &force, Grid grid, double Re);
+Matrix CalculateB_v(Matrix &u_n, Matrix &v_n, Matrix &u_prev, Matrix &v_prev, Matrix &p, Matrix &force, Grid grid, double Re);
