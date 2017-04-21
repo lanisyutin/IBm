@@ -9,13 +9,13 @@
 #include "Calculate_press.h"
 
 
-#pragma warning(disable : 4996)//for using <ctime>
+#pragma warning(disable : 4996)//for using <chrono>
 #pragma warning(disable : 4244)//for GetInfluenceArea
 
+#define CreateMatrix(name, n, m) Matrix name(n,std::vector<double>(m, 0))
 
 
 using namespace std;
-//using namespace Eigen;
 
 
 // fuctions
@@ -24,7 +24,7 @@ void InputData(Grid& grid, double &M, int &Re, double &alpha_f, double &beta_f, 
 void SetLog(ostream &log, Grid grid, double M, double Re, double alpha_f, double beta_f, double Zeidel_eps);
 void PushLog(ostream &log, int n, double eps_u, double eps_v);
 void ApplyInitialData(Matrix& u, Grid grid);
-void Resize(Matrix& M, const int n, const int m);
+
 
 
 int main(){
@@ -40,6 +40,7 @@ int main(){
 	double y = 0.0;
 	double r = 0.5;
 	double m;
+	const double epsilon = 1e-3;
 	int output_step = 0; //frequency of output
 
 	// declaration variables
@@ -48,6 +49,7 @@ int main(){
 	double eps_v = 0.0;
 	double eps_p = 0.0;
 	
+
 
 	int n = 0; // iteration counter
 	InputData(grid, m, Re, alpha_f, beta_f, Zeidel_eps,output_step, N_max, N_Zeidel); // Get value of some variables
@@ -84,6 +86,8 @@ int main(){
 			fill(OperatorA_v[i][j].begin(), OperatorA_v[i][j].end(), 0);
 		}
 	}
+	Calculate_A_u(OperatorA_u, grid, Re);//
+	Calculate_A_v(OperatorA_v, grid, Re);//
 	
 
 	// list of immersed solids
@@ -122,10 +126,10 @@ int main(){
 
 	OutputVelocity_U(U_new, -1, output_step, solidList, grid);
 	OutputVelocity_V(V_new, -1,	output_step, solidList, grid);
-	//press_output.open(filepress);
+	
 	while (n <= N_max){
-		//creation new solids
 
+		//creation new solids
 		if (n > 0 && fmod((double)n*grid.d_t, 1.5) == 0.0){
 			int chance = 80;
 			if (rand() % 100 + 1 <= chance){
@@ -163,8 +167,6 @@ int main(){
 		B_u = CalculateB_u(U_n, V_n, U_prev, V_prev, P, Force_x, grid, Re);
 		B_v = CalculateB_v(U_n, V_n, U_prev, V_prev, P, Force_y, grid, Re);
 
-		Calculate_A_u(OperatorA_u, grid, Re);//
-		Calculate_A_v(OperatorA_v, grid, Re);//
 
 		BiCGStab(U_new, grid.N1, grid.N2 + 1, OperatorA_u, B_u,grid);
 		BiCGStab(V_new, grid.N1 + 1, grid.N2, OperatorA_v, B_v,grid);
@@ -231,35 +233,116 @@ int main(){
 		CalculateForce_X(Force_x, solidList, U_new, r, Cd, grid,alpha_f,beta_f,m);
 		CalculateForce_Y(Force_y, solidList, V_new, r, Cl, grid, alpha_f, beta_f,m);
 
-		
-		for (auto& solid = solidList.begin(); solid != solidList.end(); ++solid){
-			
-			if ((solid->second->moveSolid == false)&&(n - solid->second->start_n > 10)){
-				solid->second->moveSolid = true;
-			}
 
-			if (solid->second->moveSolid){
+
+
+
+		//collisions check
+		for (int i = 0; i < solidList.size() - 1; i++) {
+			for (int j = i + 1; j < solidList.size(); j++) {
+				//distance^2 = (x1 - x2)^2 + (y1 - y2)^2
+				double distance = sqrt(pow(solidList[i]->x - solidList[j]->x, 2) + pow(solidList[i]->y - solidList[j]->y, 2));
+				Circle * first;
+				Circle * second;
+				if (solidList[i]->x < solidList[j]->x) {
+					first = solidList[i];
+					second = solidList[j];
+				}
+				else
+				{
+					first = solidList[j];
+					second = solidList[i];
+				}
+				if (distance <= (2 * first->r + epsilon)) {
+					//определим квадрант возможного столкновения 
+					//первый квадрант
+					if (first->y < second->y) {
+						for (int i = 0; i < grid.NF / 4 + 1; i++) {
+							for (int j = (grid.NF / 2) - 1; j < (2 * grid.NF / 3) + 1; j++) {
+								if (first->Bound[0][i] - second->Bound[0][j] < 1e-9)
+									if (first->Bound[1][i] - second->Bound[1][j] < 1e-9) {
+										//collision detected
+										double abs_v1, abs_v2;// speed module
+										abs_v1 = sqrt(pow(first->V, 2) - pow(first->U, 2));
+										abs_v2 = sqrt(pow(second->V, 2) - pow(second->U, 2));
+										double tetta_1, tetta_2, phi;
+										tetta_1 = atan(first->V / first->U);
+										tetta_2 = atan(second->V / second->U);
+										phi = acos((second->x - first->x) / sqrt(pow((second->x - first->x), 2) + pow((second->y - first->y), 2)));
+										first->U = abs_v2*cos(tetta_2 - phi)*cos(phi) + abs_v1*sin(tetta_1 - phi)*cos(phi + M_PI_2);
+										first->V = abs_v2*cos(tetta_2 - phi)*sin(phi) + abs_v1*sin(tetta_1 - phi)*sin(phi + M_PI_2);
+										second->U = abs_v1*cos(tetta_1 - phi)*cos(phi) + abs_v2*sin(tetta_2 - phi)*cos(phi + M_PI_2);
+										second->V = abs_v1*cos(tetta_1 - phi)*sin(phi) + abs_v2*sin(tetta_2 - phi)*sin(phi + M_PI_2);
+									}
+							}
+						}
+					}
+					//второй квадрант
+					else
+					{
+						for (int i = 2 * grid.NF / 3 - 1; i < grid.NF; i++) {
+							for (int j = grid.NF / 4 - 1; j < (grid.NF / 2) + 1; j++) {
+								if (first->Bound[0][i] - second->Bound[0][j] < 1e-9)
+									if (first->Bound[1][i] - second->Bound[1][j] < 1e-9) {
+										//collision detected
+										double abs_v1, abs_v2;// speed module
+										abs_v1 = sqrt(pow(first->V, 2) - pow(first->U, 2));
+										abs_v2 = sqrt(pow(second->V, 2) - pow(second->U, 2));
+										double tetta_1, tetta_2, phi;
+										tetta_1 = atan(first->V / first->U);
+										tetta_2 = atan(second->V / second->U);
+										phi = acos((second->x - first->x) / sqrt(pow((second->x - first->x), 2) + pow((second->y - first->y), 2)));
+										first->U = abs_v2*cos(tetta_2 - phi)*cos(phi) + abs_v1*sin(tetta_1 - phi)*cos(phi + M_PI_2);
+										first->V = abs_v2*cos(tetta_2 - phi)*sin(phi) + abs_v1*sin(tetta_1 - phi)*sin(phi + M_PI_2);
+										second->U = abs_v1*cos(tetta_1 - phi)*cos(phi) + abs_v2*sin(tetta_2 - phi)*cos(phi + M_PI_2);
+										second->V = abs_v1*cos(tetta_1 - phi)*sin(phi) + abs_v2*sin(tetta_2 - phi)*sin(phi + M_PI_2);
+
+									}
+							}
+						}
+
+					}
+				}
+			}
+		}
+
+
+		CreateMatrix(index, 1, solidList.size());// array for erasing particles
+		for (auto& solid : solidList){
+			if ((solid.second->moveSolid == false)&&(n - solid.second->start_n > 10)){
+				solid.second->moveSolid = true;
+			}
+			
+			if (solid.second->moveSolid){
 				//update position
 				for (int k = 0; k < grid.NF; ++k){
-					solid->second->Bound[0][k] += solid->second->U * grid.d_t;
-					solid->second->Bound[1][k] += solid->second->V * grid.d_t;
-					solid->second->x += solid->second->U * grid.d_t;
-					solid->second->y += solid->second->V * grid.d_t;
+					solid.second->Bound[0][k] += solid.second->U * grid.d_t;
+					solid.second->Bound[1][k] += solid.second->V * grid.d_t;
+					solid.second->x += solid.second->U * grid.d_t;
+					solid.second->y += solid.second->V * grid.d_t;
 				}
 			}
-			//delete bodies which move 80% of length
-			if (solid->second->x > grid.L*0.8){
-					solidList.erase(solid->first);
-				
-				}
 
+			//delete bodies which move 80% of length
+			if (solid.second->x > grid.L*0.8) {
+				index[0][solid.first] = 1;
+			}
 		}
-		//
+
+		//delete necessary particles
+		for (int i = 0; i < solidList.size();i++) {
+			if(index[0][i]==1)solidList.erase(i);
+		}
+
 
 		if (n < 1000 || (n > 1000 && 0 == n % 100)){
 			cout << "n  = " << n << " | eps_u = " << eps_u << " | eps_v = " << eps_v << "		";
 			time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());   // get time now
-			cout << ctime(&t);
+			string s_time = ctime(&t);
+			s_time.erase(7, 1);
+			s_time.erase(0, 4);
+			s_time.erase(s_time.size() - 6, 5);
+			cout << s_time;
 
 			PushLog(log, n, eps_u, eps_v);
 			log.flush();
@@ -272,8 +355,8 @@ int main(){
 		}
 
 
-#pragma message("Clean hardcode for tolerance")
-		if (eps_u < 1e-3 && eps_v < 1e-3){
+
+		if (eps_u < epsilon && eps_v < epsilon){
 			OutputVelocity_U(U_new, n, output_step, solidList, grid);
 			OutputVelocity_V(V_new, n, output_step, solidList, grid);
 			OutputPressure(P, n, output_step, solidList, grid);
@@ -318,7 +401,11 @@ void SetLog(ostream& log, Grid grid, double M, double Re, double alpha_f, double
 void PushLog(ostream& log, int n, double eps_u, double eps_v){
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now()); 
 	log << "n  = " << n << " | eps_u = " << eps_u << " | eps_v = " << eps_v << '\t';
-	log << ctime(&t);
+	string s_time = ctime(&t);
+	s_time.erase(7, 1);
+	s_time.erase(0, 4);
+	s_time.erase(s_time.size() - 6, 5);
+	log << s_time;
 }
 
 // Apply initial data for velocity
@@ -357,10 +444,4 @@ void InputData(Grid& grid, double &M, int &Re, double &alpha_f, double &beta_f, 
 	grid.d_x = grid.L / (grid.N1 - 1);
 	grid.d_y = grid.H / (grid.N2 - 1);
 
-}
-
-void Resize(Matrix& M, const int n, const int m){
-	for (int i = 0; i < n; i++){
-		
-	}
 }
